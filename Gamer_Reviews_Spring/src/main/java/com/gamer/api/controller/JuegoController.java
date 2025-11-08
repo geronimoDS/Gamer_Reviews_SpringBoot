@@ -12,6 +12,8 @@ import com.gamer.api.dto.*;
 import com.gamer.api.model.Juego;
 import com.gamer.api.service.JuegoService;
 import com.gamer.api.storage.FileStorageService;
+
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -26,7 +28,7 @@ public class JuegoController {
     private final JuegoService juegoService;
     private final FileStorageService fileStorage;
 
-    public JuegoController(JuegoService juegoService, FileStorageService fileStorage) {
+    public JuegoController(JuegoService juegoService, @Qualifier("imageFileStorageService") FileStorageService fileStorage) {
         this.juegoService = juegoService;
         this.fileStorage = fileStorage;
     }

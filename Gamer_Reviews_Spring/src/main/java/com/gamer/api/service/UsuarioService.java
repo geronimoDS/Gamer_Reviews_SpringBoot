@@ -2,7 +2,9 @@ package com.gamer.api.service;
 
 import com.gamer.api.model.Usuario;
 import com.gamer.api.config.JwtUtil;
+
 import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import java.sql.Date;
@@ -11,6 +13,13 @@ import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.Types;
 import java.time.LocalDate;
+
+import com.gamer.api.model.Review;
+
+import java.util.stream.Collectors;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
 
 
 
@@ -57,13 +66,17 @@ public class UsuarioService {
         }
 
         Map<String, Object> u = list.get(0);
-        int id = (int) u.get("usuario_id");
+        Number idNum = (Number) u.get("usuario_id");
+        Number rolNum = (Number) u.get("rol");
+
+        int id = idNum.intValue();
+        int rol = rolNum.intValue();
         String nombre = (String) u.get("nombre");
-        int rol = (int) u.get("rol");
 
         String token = jwtUtil.generateToken(id, nombre, rol);
         return Optional.of(token);
     }
+
 
     // sp_GetUserById
     public Optional<Usuario> getUserById(int usuarioId) {
@@ -102,5 +115,47 @@ public class UsuarioService {
             }
         );
     }
+      
+    // sp_GetIconUSer
+    public Optional<String> getIconUser(int usuarioId) {
+        String sql = "EXEC sp_GetIconUSer @usuario_id = ?";
+        List<Map<String, Object>> result = jdbcTemplate.queryForList(sql, usuarioId);
 
+        if (result.isEmpty()) return Optional.empty();
+
+        Object val = result.get(0).get("perfilURL");
+        return Optional.ofNullable(val != null ? val.toString() : null);
+    }
+
+    // SELECT all users
+    public List<Usuario> getAllUsers(String baseUrl) {
+        String sql = "SELECT usuario_id, correo, nombre, perfilURL, rol, baja FROM Usuarios";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> mapUser(rs, baseUrl));
+    }
+
+    // sp_GetAllReviewsXUser
+    public List<Review> getReviewsByUser(int usuarioId) {
+        String sql = "EXEC sp_GetAllReviewsXUser @usuario_id = ?";
+        return jdbcTemplate.query(sql, new Object[]{usuarioId}, (rs, rowNum) -> {
+            Review r = new Review();
+            r.setComentarioId(rs.getInt("comentario_id"));
+            r.setNombreJuego(rs.getString("nombreJuego"));
+            r.setComentario(rs.getString("comentario"));
+            r.setPuntuacion(rs.getInt("puntuacion"));
+            return r;
+        });
+    }
+
+    // Helper privado
+    private Usuario mapUser(ResultSet rs, String baseUrl) throws SQLException {
+        Usuario u = new Usuario();
+        u.setUsuarioId(rs.getInt("usuario_id"));
+        u.setCorreo(rs.getString("correo"));
+        u.setUsuario(rs.getString("nombre"));
+        String foto = rs.getString("perfilURL");
+        u.setPerfilURL(foto != null ? baseUrl + "/users/" + foto : null);
+        u.setRol(rs.getByte("rol"));
+        u.setBaja(rs.getByte("baja"));
+        return u;
+    }
 }

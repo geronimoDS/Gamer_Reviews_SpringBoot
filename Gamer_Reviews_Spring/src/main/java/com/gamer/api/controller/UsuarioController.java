@@ -3,14 +3,25 @@ package com.gamer.api.controller;
 import com.gamer.api.dto.*;
 import com.gamer.api.model.Usuario;
 import com.gamer.api.service.UsuarioService;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import com.gamer.api.dto.BaseResponse;
 import com.gamer.api.dto.DataResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.Optional;
+
+import com.gamer.api.service.FileStorageService;
+import org.springframework.web.multipart.MultipartFile;
+import java.io.IOException;
+
+import com.gamer.api.model.Review;
+
 
 @RestController
 @RequestMapping("/api/login")
@@ -70,4 +81,102 @@ public class UsuarioController {
                     .body(new BaseResponse(false, 500, ex.getMessage()));
         }
     }
+    
+    
+    //despues probar, con el FileStorageService de package com.gamer.api.service;
+    //Metodo: PATCH... para actualizar la foto del usuario URL: http://localhost:8080/api/login/update-user
+        @Autowired
+        @Qualifier("userFileStorageService")
+        private FileStorageService fileStorageService;
+
+        @PatchMapping("/update-user")
+        public ResponseEntity<BaseResponse> updateUser(
+                @RequestParam int usuarioId,
+                @RequestParam(required = false) String correo,
+                @RequestParam(required = false) String contrasena,
+                @RequestParam(required = false) String nombre,
+                @RequestParam(required = false) MultipartFile imagen,
+                @RequestParam(required = false) String urlVieja) {
+
+            try {
+                String nombreImagen = null;
+
+                if (imagen != null && !imagen.isEmpty()) {
+                    String contentType = imagen.getContentType();
+                    if (!contentType.matches("image/(jpeg|png|webp|jpg)")) {
+                        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                .body(new BaseResponse(false, 400, "Formato de imagen no permitido."));
+                    }
+
+                    if (urlVieja != null && !urlVieja.isEmpty()) {
+                        fileStorageService.deleteFile(urlVieja);
+                    }
+
+                    nombreImagen = fileStorageService.saveFile(imagen);
+                }
+
+                int result = usuarioService.updateUser(usuarioId, correo, contrasena, nombre, nombreImagen);
+
+                if (result == 0)
+                    return ResponseEntity.ok(new BaseResponse(true, 200, "Usuario actualizado correctamente"));
+                else if (result == 1)
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                            .body(new BaseResponse(false, 404, "Usuario no encontrado"));
+                else
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .body(new BaseResponse(false, 500, "Error desconocido"));
+
+            } catch (IOException e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(new BaseResponse(false, 500, "Error al guardar imagen: " + e.getMessage()));
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(new BaseResponse(false, 500, "Error en update-user: " + e.getMessage()));
+            }
+        }
+        
+        // GET /api/login/getIconXUser
+        @GetMapping("/getIconXUser")
+        public ResponseEntity<BaseResponse> getIconXUser(@RequestParam("usuario_id") int usuarioId,
+                                                         HttpServletRequest request) {
+            try {
+                Optional<String> icon = usuarioService.getIconUser(usuarioId);
+                if (icon.isEmpty())
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                            .body(new BaseResponse(false, 404, "Usuario no encontrado"));
+
+                String fullUrl = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort() + "/users/" + icon.get();
+                return ResponseEntity.ok(new DataResponse<>(true, 200, "OK", fullUrl));
+
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(new BaseResponse(false, 500, "Error en getIconXUser: " + e.getMessage()));
+            }
+        }
+
+        // GET /api/login/get-all-users
+        @GetMapping("/get-all-users")
+        public ResponseEntity<BaseResponse> getAllUsers(HttpServletRequest request) {
+            try {
+                String baseUrl = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort();
+                var users = usuarioService.getAllUsers(baseUrl);
+                return ResponseEntity.ok(new DataResponse<>(true, 200, "Usuarios obtenidos con éxito", users));
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(new BaseResponse(false, 500, "Error en get-all-users: " + e.getMessage()));
+            }
+        }
+
+        // GET /api/login/getMisReviews
+        @GetMapping("/getMisReviews")
+        public ResponseEntity<BaseResponse> getMisReviews(@RequestParam("usuario_id") int usuarioId) {
+            try {
+                var reviews = usuarioService.getReviewsByUser(usuarioId);
+                return ResponseEntity.ok(new DataResponse<>(true, 200, "Reviews obtenidos con éxito", reviews));
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(new BaseResponse(false, 500, "Error en getMisReviews: " + e.getMessage()));
+            }
+        }
+
 }

@@ -10,7 +10,8 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
 
-@Service
+//@Service
+@Service("imageFileStorageService")
 public class FileStorageService {
 
     private final Path root = Path.of("uploads");
