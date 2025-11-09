@@ -1,0 +1,168 @@
+Documentación JAVA
+POST http://localhost:8080/api/login/login NO FUNCIONA
+
+**********************************************
+
+spring.application.name=Gamer_Reviews_Spring
+
+# Asegurate de que el puerto 14433 este abierto y accesible desde tu máquina local.
+# El parámetro encrypt=false desactiva el cifrado SSL. Si el servidor requiere conexión segura, deberías usar encrypt=true y configurar certificados.
+# Si el nombre de la base de datos (GP6) no es correcto, ajustalo según corresponda.
+
+# URL de conexion actualizada al servidor remoto
+
+spring.datasource.url=jdbc:sqlserver://Server-Terciario.Hilet.com:14433;databaseName=GP6;encrypt=false 
+spring.datasource.username=sa
+spring.datasource.password=MasterHilet2025
+spring.datasource.driver-class-name=com.microsoft.sqlserver.jdbc.SQLServerDriver
+
+# No crear/modificar tablas desde JPA (no usamos JPA)
+spring.jpa.hibernate.ddl-auto=none
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.SQLServerDialect
+
+# JWT CONFIG
+jwt.secret=EPkEoWpSwio1wENYdQfIyFqc5wwHz6Tk
+jwt.issuer=localhost
+jwt.audience=localhost
+jwt.expiration=30 # minutos
+
+
+# Tamaño máximo de upload (ajustá si hace falta)
+spring.servlet.multipart.max-file-size=10MB
+spring.servlet.multipart.max-request-size=10MB
+/*************************/
+Comparación entre las dos clases FileStorageService
+Característica	com.gamer.api.service.FileStorageService	com.gamer.api.storage.FileStorageService
+Propósito	Subida de archivos genéricos de usuario	Subida de imágenes específicas (con validación de tipo)
+Directorio base	uploads/users	uploads (y subcarpetas como games, avatars, etc.)
+Validación de tipo	No valida el tipo de archivo	Solo permite imágenes (jpeg, png, etc.)
+Método de guardado	saveFile(MultipartFile)	saveImage(MultipartFile, String folder)
+Método de borrado	deleteFile(String fileName)	deleteImageByUrl(String imagenUrl)
+Nombre de archivo	UUID + extensión	UUID + nombre original (sin espacios)
+Uso de @Service	Sí, sin nombre explícito	Sí, sin nombre explícito
+
+/*******************/
+Para después:  3 ) ⚠️ Autenticación / token:
+En tu versión C#, los métodos [Authorize] validaban JWT, pero todavía no hicimos middleware de autenticación en Spring (aunque sí generamos el token).
+¿Querés que deje esos endpoints sin validación por ahora (sin @PreAuthorize ni filtros JWT), igual que estás probando los demás con Insomnia?
+Así todo anda sin depender aún de la seguridad.
+
+
+
+
+
+
+
+
+
+COMENTARIO
+✅ Resultado final
+Tu módulo de comentarios ahora incluye:
+Endpoint	Descripción	SP usado
+POST /add-comentario	Agregar comentario	sp_AddComentario
+GET /get-comentarios/{juegoId}	Listar comentarios del juego	sp_GetComentariosByJuego
+PATCH /update-comentario	Editar comentario	sp_UpdateComentario
+DELETE /delete-comentario/{comentarioId}	Eliminar comentario	sp_DeleteComentario
+POST /toggle-like	Agregar / quitar like	sp_ToggleComentarioLike
+GET /get-like	Consultar likes de un comentario	sp_GetComentarioLike
+
+RESPUESTAS
+Replicar estos endpoints:
+Método	Endpoint	SP usado
+POST	/api/respuesta/add-respuesta	sp_AddRespuesta
+GET	/api/respuesta/get-respuestas/{comentarioId}	sp_GetRespuestasByComentario
+DELETE	/api/respuesta/delete-respuesta/{respuestaId}	sp_DeleteRespuesta
+PATCH	/api/respuesta/update-respuesta	sp_UpdateRespuesta
+
+
+TAGS
+módulo completo:
+•	Tag.java
+•	AddTagRequest.java, TagXGameRequest.java, GetTagResponse.java
+•	TagService.java con todos los SP
+•	TagController.java con los endpoints
+•	
+Buscador
+🧩 Busqueda en Java (Spring Boot)
+📁 package: com.gamer.api.controller, com.gamer.api.service, com.gamer.api.dto, com.gamer.api.model
+DESPUES PROBAR: 
+🧩 1️⃣ — Endpoint: Agregar o quitar favorito
+POST → http://localhost:8080/api/juegos/add-favorite-game
+🔹 Headers:
+Content-Type: application/json
+Authorization: Bearer <tu_token_JWT>
+🔹 Body (JSON):
+{
+  "usuarioId": 1,
+  "juegoId": 2,
+  "botonCheck": true
+}
+👉 botonCheck = true → agrega
+👉 botonCheck = false → quita
+✅ Respuesta esperada (200):
+{
+  "success": true,
+  "error": false,
+  "code": 200,
+  "message": "Operación de favorito ejecutada correctamente"
+}
+________________________________________
+🧩 2️⃣ — Endpoint: Verificar si un juego es favorito
+GET → http://localhost:8080/api/juegos/is-favorite?usuarioId=1&juegoId=2
+✅ Respuesta esperada:
+{
+  "success": true,
+  "error": false,
+  "code": 200,
+  "message": "OK",
+  "data": {
+    "isFavorite": true
+  }
+}
+________________________________________
+🧩 3️⃣ — Endpoint: Crear un “Próximo Juego”
+POST → http://localhost:8080/api/juegos/create-proxjuego
+🔹 Headers:
+Authorization: Bearer <tu_token_JWT>
+Content-Type: multipart/form-data
+🔹 Body (Form-data):
+Key	Value	Type
+nombre	Halo Infinite 2	Text
+imagen	(subís un archivo PNG/JPG)	File
+✅ Respuesta esperada (200):
+{
+  "success": true,
+  "code": 200,
+  "message": "Próximo juego agregado"
+}
+________________________________________
+🧩 4️⃣ — Endpoint: Listar próximos juegos
+GET → http://localhost:8080/api/juegos/get-proxjuegos
+✅ Respuesta esperada:
+{
+  "success": true,
+  "code": 200,
+  "message": "Lista obtenida con éxito",
+  "data": [
+    {
+      "id": 1,
+      "nombre": "Halo Infinite 2",
+      "fotoUrl": "http://localhost:8080/uploads/carrousel/uuid_halo2.jpg"
+    }
+  ]
+}
+________________________________________
+🧩 5️⃣ — Endpoint: Eliminar un “Próximo Juego”
+DELETE → http://localhost:8080/api/juegos/delete-proxjuego?id=1&imagenVieja=uuid_halo2.jpg
+✅ Respuesta esperada:
+{
+  "success": true,
+  "code": 200,
+  "message": "Próximo juego eliminado"
+}
+________________________________________
+📌 Tips útiles:
+•	Si el endpoint requiere autenticación (@Authorize / @PreAuthorize), no olvides incluir tu token JWT válido en el header.
+•	Si te devuelve 500 Error, revisá el log de consola de Spring Boot (posiblemente falta una carpeta como uploads/carrousel o un permiso de escritura).
+
