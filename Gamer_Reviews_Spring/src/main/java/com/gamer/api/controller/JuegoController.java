@@ -1,5 +1,5 @@
 package com.gamer.api.controller;
-// 5) Controller (endpoints idénticos a C#)
+// 5) Controller (endpoints identicos a C#)
 
 /* Observaciones:
 
