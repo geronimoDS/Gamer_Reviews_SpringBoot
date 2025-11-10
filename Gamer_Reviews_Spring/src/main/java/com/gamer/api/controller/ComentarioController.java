@@ -18,7 +18,7 @@ import com.gamer.api.dto.ToggleLikeRequest;
 import com.gamer.api.model.LikeResult;
 import com.gamer.api.model.LikeStatus;
 import com.gamer.api.service.LikeService;
-
+//funciona
 @RestController
 @RequestMapping("/api/comentario")
 public class ComentarioController {
