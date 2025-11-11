@@ -28,7 +28,7 @@ import java.util.*;
 import com.gamer.api.service.CarouselJuegoService;  // 👈 usa tu nuevo servicio
 
 @RestController
-@RequestMapping("/api/juego")
+@RequestMapping("/api/Juego")
 public class JuegoController {
 
     private final JuegoService juegoService;
